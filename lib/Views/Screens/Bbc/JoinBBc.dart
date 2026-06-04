@@ -412,100 +412,86 @@ $_userName
                           child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
                         ),
                       ),
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.15),
-                          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                        ),
-                        child: const Icon(Icons.help_outline_rounded, color: Colors.white, size: 20),
-                      ),
+                     
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 2),
                   Row(
                     children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.15),
-                          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.92),
-                            ),
-                            child: Center(
-                              child: Image.asset(
-                                'assets/images/bbclogo.png',
-                                width: 24,
-                                height: 24,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(Icons.business_center_rounded, color: _kBrand, size: 20),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Business Boosters Club',
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white)),
-                          const SizedBox(height: 2),
-                          Text(_isApprovedMember ? 'MEMBER PORTAL' : 'BECOME A MEMBER',
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1.2,
-                                  color: Colors.white.withOpacity(0.55))),
-                        ],
-                      ),
+                      
+                   
+                     
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  Text(_isApprovedMember ? 'YOUR STATUS' : 'JOIN NETWORK',
-                      style: GoogleFonts.dmSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                          color: Colors.white.withOpacity(0.6))),
+                 
+                 
                   const SizedBox(height: 5),
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: _isApprovedMember ? 'Welcome Back,\n' : 'Become a\n',
-                          style: GoogleFonts.cormorantGaramond(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              height: 1.1),
-                        ),
-                        TextSpan(
-                          text: _isApprovedMember ? 'Member' : 'Premium Member',
-                          style: GoogleFonts.cormorantGaramond(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w600,
-                              fontStyle: FontStyle.italic,
-                              color: const Color(0xFFFFDCF0).withOpacity(0.95),
-                              height: 1.1),
-                        ),
-                      ],
-                    ),
-                  ),
+                Row(
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: [
+    Expanded(
+      child: RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: _isApprovedMember
+                  ? 'Welcome Back,\n'
+                  : 'Become a\n',
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 32,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                height: 1.1,
+              ),
+            ),
+            TextSpan(
+              text: _isApprovedMember
+                  ? 'Member'
+                  : 'Premium Member',
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 32,
+                fontWeight: FontWeight.w600,
+                fontStyle: FontStyle.italic,
+                color: const Color(0xFFFFDCF0).withOpacity(0.95),
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+
+    const SizedBox(width: 16),
+
+    Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.92),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Image.asset(
+          'assets/images/bbclogo.png',
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Icon(
+            Icons.business_center_rounded,
+            color: _kBrand,
+            size: 24,
+          ),
+        ),
+      ),
+    ),
+  ],
+),
                 ],
               ),
             ),
@@ -706,57 +692,8 @@ $_userName
             const SizedBox(height: 24),
             
             // Download App Info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _kBrandLight,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _kBorder),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Image.asset(
-                      'assets/images/bbclogo.png',
-                      width: 30,
-                      height: 30,
-                      errorBuilder: (_, __, ___) => Icon(Icons.shopping_bag, color: _kBrand),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Business Boosters Club',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: _kTextPri,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Download the app to connect with 120+ businesses',
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: _kTextSec,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
+          
+          
             
             // Share Referral Button
             if (_userReferralCode.isNotEmpty)

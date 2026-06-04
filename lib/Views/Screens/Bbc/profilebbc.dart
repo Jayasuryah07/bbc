@@ -555,17 +555,18 @@ ${_referredBy.isNotEmpty ? "🔗 REFERRED BY: $_referredBy\n" : ""}
                   children: [
                     _buildProfileCard(),
                    const SizedBox(height: 32),
-                    if (_company.isNotEmpty || _address.isNotEmpty || _referredBy.isNotEmpty)
-                      _buildSection(
-                        label: 'Company Details',
-                        icon: Icons.business_center_rounded,
-                        child: _buildCompanyBody(),
-                      ),
+                   
                     if (_productsServices.isNotEmpty)
                       _buildSection(
                         label: 'Products & Services',
                         icon: Icons.inventory_2_outlined,
                         child: _buildServicesBody(),
+                      ),
+                       if (_company.isNotEmpty || _address.isNotEmpty || _referredBy.isNotEmpty)
+                      _buildSection(
+                        label: 'Company Details',
+                        icon: Icons.business_center_rounded,
+                        child: _buildCompanyBody(),
                       ),
                     const SizedBox(height: 32),
                   ],
@@ -607,17 +608,10 @@ ${_referredBy.isNotEmpty ? "🔗 REFERRED BY: $_referredBy\n" : ""}
                           Icons.arrow_back_rounded, () => Navigator.pop(context)),
                     ],
                   ),
-                  const SizedBox(height: 22),
-                  Text(
-                    'MEMBER PROFILE',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.5,
-                      color: Colors.white.withOpacity(0.55),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
+              
+                 
+                  
+                 
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [

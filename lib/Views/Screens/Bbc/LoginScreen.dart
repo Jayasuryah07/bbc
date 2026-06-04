@@ -38,9 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Custom OTP Dialog matching app theme
+  // Custom OTP Dialog with better spacing
   void _showOtpDialog(String verificationId) {
-    TextEditingController otpController = TextEditingController();
     List<TextEditingController> otpControllers = List.generate(6, (_) => TextEditingController());
     List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
     
@@ -49,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
       barrierDismissible: false,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -68,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // Header with gradient
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
@@ -83,8 +82,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: [
                     Container(
-                      width: 60,
-                      height: 60,
+                      width: 70,
+                      height: 70,
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         shape: BoxShape.circle,
@@ -92,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: const Icon(
                         Icons.smartphone,
                         color: Colors.white,
-                        size: 32,
+                        size: 34,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -100,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Verify OTP',
                       style: GoogleFonts.cormorantGaramond(
                         fontSize: 28,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
@@ -126,51 +125,60 @@ class _LoginScreenState extends State<LoginScreen> {
               
               // OTP Input Section
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(28),
                 child: Column(
                   children: [
-                    // OTP Boxes
+                    // OTP Boxes with proper spacing
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: List.generate(6, (index) => Container(
-                        width: 50,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFDF4F9),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFB0126B).withOpacity(0.3),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: TextFormField(
-                          controller: otpControllers[index],
-                          focusNode: focusNodes[index],
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          maxLength: 1,
-                          style: GoogleFonts.dmSans(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1A0A13),
-                          ),
-                          decoration: const InputDecoration(
-                            counterText: "",
-                            border: InputBorder.none,
-                          ),
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          onChanged: (value) {
-                            if (value.isNotEmpty && index < 5) {
-                              focusNodes[index + 1].requestFocus();
-                            } else if (value.isEmpty && index > 0) {
-                              focusNodes[index - 1].requestFocus();
-                            }
-                          },
-                        ),
-                      )),
-                    ),
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: List.generate(
+    6,
+    (index) => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Container(
+        width: 40,
+        height: 46,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFDF4F9),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: const Color(0xFFB0126B).withOpacity(0.25),
+            width: 1.2,
+          ),
+        ),
+        child: TextFormField(
+          controller: otpControllers[index],
+          focusNode: focusNodes[index],
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          maxLength: 1,
+          style: GoogleFonts.dmSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1A0A13),
+          ),
+          decoration: const InputDecoration(
+            counterText: "",
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+          ),
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+          ],
+          onChanged: (value) {
+            if (value.isNotEmpty && index < 5) {
+              focusNodes[index + 1].requestFocus();
+            } else if (value.isEmpty && index > 0) {
+              focusNodes[index - 1].requestFocus();
+            }
+          },
+        ),
+      ),
+    ),
+  ),
+),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     
                     // Timer Row
                     StreamBuilder<int>(
@@ -217,12 +225,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     
                     // Verify Button
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 52,
                       child: ElevatedButton(
                         onPressed: () {
                           String otp = otpControllers.map((c) => c.text).join();
@@ -231,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFB0126B),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius.circular(26),
                           ),
                           elevation: 0,
                         ),
@@ -308,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _loading = true);
-    Navigator.pop(dialogContext); // Close dialog
+    Navigator.pop(dialogContext);
 
     try {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
@@ -470,6 +478,7 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: const Color(0xFF1A0A13),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
@@ -492,7 +501,10 @@ class _LoginScreenState extends State<LoginScreen> {
               child: SafeArea(
                 child: Column(
                   children: [
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 60),
+                    // Centered Logo Section
+                    _buildCenteredLogo(),
+                    const SizedBox(height: 20),
                     Expanded(
                       child: Container(
                         margin: const EdgeInsets.only(top: 20),
@@ -508,8 +520,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildBrandRow(),
-                              const SizedBox(height: 32),
                               Text(
                                 'MOBILE NUMBER',
                                 style: GoogleFonts.dmSans(
@@ -581,54 +591,74 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildBrandRow() {
-    return Row(
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFCE8F3),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Center(
-            child: Image.asset(
-              'assets/images/bbclogo.png',
-              width: 30,
-              height: 30,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.business_center_rounded,
-                color: Color(0xFFB0126B),
-                size: 26,
+  Widget _buildCenteredLogo() {
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+           
+            child: Center(
+              child: Container(
+                width: 85,
+                height: 85,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Image.asset(
+                    'assets/images/bbclogo.png',
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.business_center_rounded,
+                      color: Color(0xFFB0126B),
+                      size: 40,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Business Boosters Club',
+          const SizedBox(height: 16),
+          Text(
+            'Business Boosters Club',
+            style: GoogleFonts.cormorantGaramond(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'PREMIUM NETWORK',
               style: GoogleFonts.dmSans(
-                fontSize: 14,
+                fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFFB0126B),
-                letterSpacing: -0.1,
+                letterSpacing: 1.2,
+                color: Colors.white.withOpacity(0.9),
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              'Premium Member Network',
-              style: GoogleFonts.dmSans(
-                fontSize: 11,
-                color: const Color(0xFFB89AAE),
-                letterSpacing: 0.2,
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -646,14 +676,25 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Row(
         children: [
           const SizedBox(width: 16),
-          const Text('🇮🇳', style: TextStyle(fontSize: 18)),
-          const SizedBox(width: 6),
-          Text(
-            '+91',
-            style: GoogleFonts.dmSans(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF1A0A13),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFB0126B).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Text('🇮🇳', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 4),
+                Text(
+                  '+91',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFB0126B),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -681,16 +722,16 @@ class _LoginScreenState extends State<LoginScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Container(
-                width: 24,
-                height: 24,
+                width: 26,
+                height: 26,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFB0126B).withOpacity(0.1),
+                  color: const Color(0xFFB0126B),
                 ),
                 child: const Icon(
                   Icons.check_rounded,
-                  size: 14,
-                  color: Color(0xFFB0126B),
+                  size: 16,
+                  color: Colors.white,
                 ),
               ),
             ),

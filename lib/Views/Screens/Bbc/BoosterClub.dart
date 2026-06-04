@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ─── Brand tokens (identical across all BBC screens) ──────────────────────────
 const _kBrand      = Color(0xFFB0126B);
@@ -182,7 +183,9 @@ class _AboutUsPageState extends State<AboutUsPage> {
                           child: Column(
                             children: [
                               _buildAboutSection(),
+                              const SizedBox(height: 10),
                               _buildMissionVisionSection(),
+                              _buildDirectorsSection(),
                               _buildCoreValuesSection(),
                               _buildHistorySection(),
                               _buildContactSection(),
@@ -238,70 +241,12 @@ class _AboutUsPageState extends State<AboutUsPage> {
                           child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
                         ),
                       ),
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.15),
-                          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                        ),
-                        child: const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
-                      ),
+                      
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.15),
-                          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.92),
-                            ),
-                            child: Center(
-                              child: Image.asset(
-                                'assets/images/bbclogo.png',
-                                width: 24,
-                                height: 24,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(Icons.business_center_rounded, color: _kBrand, size: 20),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Business Boosters Club',
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white)),
-                          const SizedBox(height: 2),
-                          Text('ABOUT US',
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1.2,
-                                  color: Colors.white.withOpacity(0.55))),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 2),
+                 
+                
                   Text('OUR STORY',
                       style: GoogleFonts.dmSans(
                           fontSize: 10,
@@ -309,30 +254,70 @@ class _AboutUsPageState extends State<AboutUsPage> {
                           letterSpacing: 1.2,
                           color: Colors.white.withOpacity(0.6))),
                   const SizedBox(height: 5),
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Know Who\n',
-                          style: GoogleFonts.cormorantGaramond(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              height: 1.1),
-                        ),
-                        TextSpan(
-                          text: 'We Are',
-                          style: GoogleFonts.cormorantGaramond(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w600,
-                              fontStyle: FontStyle.italic,
-                              color: const Color(0xFFFFDCF0).withOpacity(0.95),
-                              height: 1.1),
-                        ),
-                      ],
-                    ),
-                  ),
+                 Row(
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: [
+    Expanded(
+      child: RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: 'Know Who\n',
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 32,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                height: 1.1,
+              ),
+            ),
+            TextSpan(
+              text: 'We Are',
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 32,
+                fontWeight: FontWeight.w600,
+                fontStyle: FontStyle.italic,
+                color: const Color(0xFFFFDCF0).withOpacity(0.95),
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+
+    const SizedBox(width: 16),
+
+    Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.92),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Image.asset(
+          'assets/images/bbclogo.png',
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Icon(
+            Icons.business_center_rounded,
+            color: _kBrand,
+            size: 24,
+          ),
+        ),
+      ),
+    ),
+  ],
+),
                 ],
+                
               ),
             ),
           ],
@@ -369,7 +354,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
 
   Widget _buildAboutSection() {
     return Transform.translate(
-      offset: const Offset(0, -20),
+      offset: const Offset(0, 10),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20),
         child: Container(
@@ -708,17 +693,20 @@ class _AboutUsPageState extends State<AboutUsPage> {
             ),
             const SizedBox(height: 16),
             _contactRow(Icons.email_outlined, _contactInfo['email'] ?? 'info@businessboosters.club'),
-            const SizedBox(height: 12),
-            _contactRow(Icons.phone_outlined, _contactInfo['phone'] ?? '+91-XXXXXXXXXX'),
-            const SizedBox(height: 12),
-            _contactRow(Icons.location_on_outlined, _contactInfo['address'] ?? 'Business Boosters Club, India'),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () {
-                  _showSnackBar('Contact support: ${_contactInfo['email']}');
-                },
+              onPressed: () async {
+  final Uri url = Uri.parse(
+    'https://businessboosters.club/contact',
+  );
+
+  await launchUrl(
+    url,
+    mode: LaunchMode.externalApplication,
+  );
+},
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: _kBrand, width: 1.5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -766,4 +754,81 @@ class _AboutUsPageState extends State<AboutUsPage> {
       ],
     );
   }
+ Widget _buildDirectorsSection() {
+  final directors = [
+    {
+      'image': 'assets/images/1.png',
+      'name': 'BHUPENDRA KOTWAL',
+    },
+    {
+      'image': 'assets/images/2.png',
+      'name': 'NARENDAR GEHLOT',
+    },
+    {
+      'image': 'assets/images/3.png',
+      'name': 'UMESH TULSYAN',
+    },
+  ];
+
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        Text(
+          'Our Directors',
+          style: GoogleFonts.dmSans(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: _kTextPri,
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Row layout for directors
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: directors.map((director) {
+            return Expanded(
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    
+                    child: CircleAvatar(
+                      radius: 45,
+                      backgroundImage: AssetImage(director['image']!),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    director['name']!,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _kTextPri,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    ),
+  );
+}
 }
