@@ -3,6 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'LoginScreen.dart';
 import 'OnBoardingSlider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+// ── Brand palette ────────────────────────────────────────────────────────────
+const _kBrand     = Color(0xFFB0126B);
+const _kBrandDeep = Color(0xFF8A0D55);
+const _kPlum      = Color(0xFF9C3A8B);
+const _kBlue      = Color(0xFF2196F3);
+const _kBlueLight  = Color(0xFF64B5F6);
+const _kBlueDark   = Color(0xFF1976D2);
+// ─────────────────────────────────────────────────────────────────────────────
 
 class SplashScreen2 extends StatefulWidget {
   const SplashScreen2({super.key});
@@ -11,264 +21,394 @@ class SplashScreen2 extends StatefulWidget {
   State<SplashScreen2> createState() => _SplashScreen2State();
 }
 
-class _SplashScreen2State extends State<SplashScreen2> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
+class _SplashScreen2State extends State<SplashScreen2>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  // ── Individual animation handles ─────────────────────────────────────────
+  late Animation<double>  _logoFade;
+  late Animation<double>  _logoScale;
+  late Animation<double>  _badgeFade;
+  late Animation<double>  _badgeScale;
+  late Animation<double>  _loaderFade;
+  late Animation<double>  _agFade;
+  late Animation<Offset>  _agSlide;
+  late Animation<double>  _chipsFade;
+  late Animation<Offset>  _chipsSlide;
+  late Animation<double>  _loveFade;
+  late Animation<Offset>  _loveSlide;
 
   @override
   void initState() {
     super.initState();
-    
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1600),
+
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 2400),
       vsync: this,
     );
+
+    // BBC logo – drops in first
+    _logoFade = _curve(0.00, 0.45, Curves.easeOut);
+    _logoScale = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(
+          parent: _ctrl,
+          curve: const Interval(0.00, 0.55, curve: Curves.easeOutBack)));
+
+    // Trust badge
+    _badgeFade  = _curve(0.45, 0.75, Curves.easeIn);
+    _badgeScale = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(
+          parent: _ctrl,
+          curve: const Interval(0.45, 0.75, curve: Curves.easeOutBack)));
+
+    // Loading spinner
+    _loaderFade = _curve(0.60, 0.85, Curves.easeIn);
+
+    // AG Solutions logo
+    _agFade  = _curve(0.65, 0.90, Curves.easeIn);
+    _agSlide = _slide(0.65, 0.90, dy: 0.3);
+
+    // Service chips
+    _chipsFade  = _curve(0.75, 1.00, Curves.easeIn);
+    _chipsSlide = _slide(0.75, 1.00, dy: 0.5);
     
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    
-    _scaleAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
-    );
-    
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
-    );
-    
-    _animationController.forward();
-    
-    Timer(const Duration(seconds: 3), () {
+    // Love text
+    _loveFade = _curve(0.85, 1.00, Curves.easeIn);
+    _loveSlide = _slide(0.85, 1.00, dy: 0.3);
+
+    _ctrl.forward();
+
+    Timer(const Duration(seconds: 4), () {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
         );
       }
     });
   }
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  Animation<double> _curve(double from, double to, Curve curve) =>
+      Tween<double>(begin: 0, end: 1).animate(
+          CurvedAnimation(parent: _ctrl, curve: Interval(from, to, curve: curve)));
+
+  Animation<Offset> _slide(double from, double to,
+          {double dx = 0, double dy = 0}) =>
+      Tween<Offset>(begin: Offset(dx, dy), end: Offset.zero).animate(
+          CurvedAnimation(
+              parent: _ctrl,
+              curve: Interval(from, to, curve: Curves.easeOutCubic)));
+
   @override
   void dispose() {
-    _animationController.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
+  // ── Build ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: Colors.white,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(flex: 1),
-                
-                // Logo with animation
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      child: Image.asset(
-                        "assets/images/ag.png",
-                        height: 100,
-                        width: 100,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Company Name
-                SlideTransition(
-                  position: _slideAnimation,
-                  child: const Text(
-                    "AG Solutions",
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Divider line
-                SlideTransition(
-                  position: _slideAnimation,
-                  child: Container(
-                    width: 60,
-                    height: 3,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB),
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Tagline
-                SlideTransition(
-                  position: _slideAnimation,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      "Transforming Ideas Into Digital Excellence",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        height: 1.4,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF666666),
-                      ),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Trust badge
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.verified,
-                          size: 16,
-                          color: Color(0xFF2563EB),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.white,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 80),
+
+                  // ── BBC LOGO (moved down with proper spacing) ───────────
+                  FadeTransition(
+                    opacity: _logoFade,
+                    child: ScaleTransition(
+                      scale: _logoScale,
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: _kBrand.withOpacity(0.12),
+                              blurRadius: 40,
+                              spreadRadius: 8,
+                            ),
+                            BoxShadow(
+                              color: _kPlum.withOpacity(0.08),
+                              blurRadius: 60,
+                              spreadRadius: 12,
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 8),
+                        child: Image.asset(
+                          "assets/images/bbclogo.png",
+                          height: 180,
+                          width: 180,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                   const SizedBox(height: 40),
+
+                  // Powered by 100+ Business
+                  FadeTransition(
+                    opacity: _badgeFade,
+                    child: ScaleTransition(
+                      scale: _badgeScale,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 22, vertical: 11),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [_kBrandDeep, _kPlum],
+                          ),
+                          borderRadius: BorderRadius.circular(50),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _kBrand.withOpacity(0.35),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.verified_rounded,
+                                size: 18, color: Colors.white),
+                            SizedBox(width: 9),
+                            Text(
+                              "Powered by 100+ Business",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Loading Indicator
+                  FadeTransition(
+                    opacity: _loaderFade,
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 30,
+                          width: 30,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(_kBrand),
+                            backgroundColor: _kBrand.withOpacity(0.12),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
                         Text(
-                          "Trusted by 100+ Businesses",
+                          "Loading Amazing Experience...",
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF2563EB),
+                            color: _kBrand.withOpacity(0.55),
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 48),
-                 Column(
-                  children: [
-                    const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      "Loading Amazing Experience...",
-                      style: TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade500,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-                 const Spacer(flex: 2),
-                 const SizedBox(height: 4),
-                // Service chips
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      alignment: WrapAlignment.center,
+
+                  const SizedBox(height: 120),
+
+                  // ── DIVIDER ─────────────────────────────────────────────
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 30),
+                    child: Row(
                       children: [
-                        _modernChip(Icons.public, "Website"),
-                        _modernChip(Icons.phone_android, "Mobile App"),
-                        _modernChip(Icons.web, "Web App"),
-                        _modernChip(Icons.design_services, "UI/UX"),
-                        _modernChip(Icons.search, "SEO"),
-                        _modernChip(Icons.trending_up, "Marketing"),
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: const Color.fromARGB(255, 33, 150, 243).withOpacity(0.2),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _kBlue.withOpacity(0.4),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: _kBlue.withOpacity(0.2),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ),
-                
-               
-                // Loading indicator
-               
-                
-                
-              ],
+
+                  const SizedBox(height: 25),
+
+                  // Crafted with Love Text + AG Solutions SVG Image
+                  SlideTransition(
+                    position: _loveSlide,
+                    child: FadeTransition(
+                      opacity: _loveFade,
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "This app is Crafted with",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black.withOpacity(0.5),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.favorite,
+                                size: 17,
+                                color: const Color.fromARGB(255, 255, 0, 0),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                "by",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black.withOpacity(0.5),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // AG Solutions SVG Image
+                        Image.asset(
+  "assets/images/ag1.png",
+  height: 70,
+  width: 200,
+  fit: BoxFit.contain,
+)
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Divider line below AG Solutions
+                  
+                  // Service Chips (Blue themed)
+                  SlideTransition(
+                    position: _chipsSlide,
+                    child: FadeTransition(
+                      opacity: _chipsFade,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _blueChip(Icons.public, "Web"),
+                            _blueChip(Icons.phone_android, "Mobile App"),
+                            _blueChip(Icons.web, "Web App"),
+                            _blueChip(Icons.design_services, "UI/UX"),
+                            _blueChip(Icons.trending_up, "Digital Marketing"),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                 
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
-  
-  Widget _modernChip(IconData icon, String title) {
+
+  // Blue themed chip widget for AG Solutions section
+  Widget _blueChip(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(30),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color.fromARGB(255, 255, 255, 255),
+            const Color.fromARGB(255, 255, 255, 255).withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: const Color(0xFFE8ECF0),
+          color: const Color.fromARGB(255, 33, 150, 243).withOpacity(0.25),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color.fromARGB(255, 33, 150, 243).withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: const Color(0xFF2563EB),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [const Color.fromARGB(255, 255, 255, 255), const Color.fromARGB(255, 255, 255, 255)],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon, 
+              size: 14, 
+              color: const Color.fromARGB(255, 33, 150, 243),
+            ),
           ),
           const SizedBox(width: 8),
           Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 13,
-              color: Color(0xFF333333),
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: const Color.fromARGB(255, 0, 0, 0),
+              letterSpacing: 0.2,
             ),
           ),
         ],

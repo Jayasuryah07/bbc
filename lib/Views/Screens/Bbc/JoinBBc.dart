@@ -415,7 +415,7 @@ $_userName
                      
                     ],
                   ),
-                  const SizedBox(height: 2),
+                 
                   Row(
                     children: [
                       
@@ -425,7 +425,7 @@ $_userName
                   ),
                  
                  
-                  const SizedBox(height: 5),
+                 
                 Row(
   crossAxisAlignment: CrossAxisAlignment.center,
   children: [
@@ -463,33 +463,38 @@ $_userName
 
     const SizedBox(width: 16),
 
-    Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.92),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Image.asset(
-          'assets/images/bbclogo.png',
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Icon(
-            Icons.business_center_rounded,
-            color: _kBrand,
-            size: 24,
-          ),
+    Transform.translate(
+  offset: const Offset(0, -40), // move entire container up
+  child: Container(
+    width: 130,
+    height: 130,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.white.withOpacity(0.92),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.12),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: Image.asset(
+        'assets/images/bbclogo.png',
+        fit: BoxFit.contain,
+        width: 120,
+        height: 120,
+        errorBuilder: (_, __, ___) => Icon(
+          Icons.business_center_rounded,
+          color: _kBrand,
+          size: 80,
         ),
       ),
     ),
+  ),
+)
   ],
 ),
                 ],
@@ -703,7 +708,7 @@ $_userName
                   onPressed: _shareReferralCode,
                   icon: const Icon(Icons.share_rounded, color: Colors.white),
                   label: Text(
-                    'Share Referral Code',
+                    'Invite Friends with Referral Code',
                     style: GoogleFonts.dmSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

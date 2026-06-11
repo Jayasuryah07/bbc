@@ -553,22 +553,20 @@ ${_referredBy.isNotEmpty ? "🔗 REFERRED BY: $_referredBy\n" : ""}
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    _buildProfileCard(),
-                   const SizedBox(height: 32),
-                   
+                    const SizedBox(height: 8),
                     if (_productsServices.isNotEmpty)
                       _buildSection(
                         label: 'Products & Services',
                         icon: Icons.inventory_2_outlined,
                         child: _buildServicesBody(),
                       ),
-                       if (_company.isNotEmpty || _address.isNotEmpty || _referredBy.isNotEmpty)
+                    if (_company.isNotEmpty || _address.isNotEmpty || _referredBy.isNotEmpty)
                       _buildSection(
                         label: 'Company Details',
                         icon: Icons.business_center_rounded,
                         child: _buildCompanyBody(),
                       ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -597,7 +595,7 @@ ${_referredBy.isNotEmpty ? "🔗 REFERRED BY: $_referredBy\n" : ""}
             Positioned(top: -50, right: -40, child: _fog(200, 0.05)),
             Positioned(bottom: 0, left: -20, child: _fog(110, 0.04)),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -606,47 +604,102 @@ ${_referredBy.isNotEmpty ? "🔗 REFERRED BY: $_referredBy\n" : ""}
                     children: [
                       _headerCircleBtn(
                           Icons.arrow_back_rounded, () => Navigator.pop(context)),
+                      const SizedBox(width: 40), // Empty space for alignment
                     ],
                   ),
-              
-                 
-                  
-                 
+                  const SizedBox(height: 16),
+                  // Row with Name and Occupation on left, Avatar on right
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Business\n',
-                                style: GoogleFonts.cormorantGaramond(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                  height: 1.1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _name,
+                              style: GoogleFonts.cormorantGaramond(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                height: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (_occupation.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  _occupation,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                              TextSpan(
-                                text: 'Partner',
-                                style: GoogleFonts.cormorantGaramond(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w600,
-                                  fontStyle: FontStyle.italic,
-                                  color: const Color(0xFFFFD6F0),
-                                  height: 1.1,
-                                ),
+                            const SizedBox(height: 16),
+                            // Mobile Number
+                            if (_mobile.isNotEmpty)
+                              _contactInfoRow(
+                                icon: Icons.phone_rounded,
+                                value: _mobile,
+                                onTap: _makePhoneCall,
                               ),
-                            ],
-                          ),
+                            const SizedBox(height: 12),
+                            // Email
+                            if (_email.isNotEmpty)
+                              _contactInfoRow(
+                                icon: Icons.email_rounded,
+                                value: _email,
+                                onTap: _sendEmail,
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 16),
+                      // Profile photo on the right side with 90x160 size
                       _buildLargeAvatar(),
                     ],
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _contactInfoRow({
+    required IconData icon,
+    required String value,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+       
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: Colors.white),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                value,
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -676,195 +729,72 @@ ${_referredBy.isNotEmpty ? "🔗 REFERRED BY: $_referredBy\n" : ""}
             shape: BoxShape.circle,
             color: Colors.white.withOpacity(opacity)));
 
-  Widget _buildProfileCard() {
-    return Transform.translate(
-      offset: const Offset(0, 10),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 18),
-        decoration: BoxDecoration(
-          color: _kCardBg,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-                color: _kBrand.withOpacity(0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 8)),
-            BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _name,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.dmSans(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: _kTextPri,
-                  letterSpacing: -0.6,
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (_occupation.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: _kBrandLight,
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(color: _kBrandMid.withOpacity(.4)),
-                  ),
-                  child: Text(
-                    _occupation,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: _kBrandDeep,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 24),
-              const _Divider(),
-              const SizedBox(height: 22),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_mobile.isNotEmpty)
-                    Expanded(
-                      child: _contactInfoTile(
-                        icon: Icons.phone_rounded,
-                        label: 'Mobile',
-                        value: _mobile,
-                        color: _kCall,
-                        onTap: _makePhoneCall,
-                      ),
-                    ),
-                  if (_mobile.isNotEmpty && _email.isNotEmpty)
-                    Container(
-                      width: 1,
-                      height: 52,
-                      margin: const EdgeInsets.symmetric(horizontal: 18),
-                      color: _kBorder,
-                    ),
-                  if (_email.isNotEmpty)
-                    Expanded(
-                      child: _contactInfoTile(
-                        icon: Icons.email_rounded,
-                        label: 'Email',
-                        value: _email,
-                        color: _kEmail,
-                        onTap: _sendEmail,
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _contactInfoTile({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-                shape: BoxShape.circle, color: color.withOpacity(0.1)),
-            child: Icon(icon, size: 17, color: color),
-          ),
-          const SizedBox(height: 6),
-          Text(label,
-              style: GoogleFonts.dmSans(fontSize: 10, color: _kTextMuted,
-                  fontWeight: FontWeight.w500)),
-          const SizedBox(height: 2),
-          Text(
-            value.length > 18 ? '${value.substring(0, 16)}…' : value,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.dmSans(
-                fontSize: 12, color: _kTextPri, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-
- Widget _buildLargeAvatar() {
-  return Stack(
-    alignment: Alignment.bottomRight,
-    children: [
-      Container(
-        width: 110,
-        height: 160,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            colors: [_kBrandMid, _kBrand],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: _kCardBg,
-            borderRadius: BorderRadius.all(
-              Radius.circular(21),
-            ),
-          ),
-          padding: const EdgeInsets.all(2),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(19),
-            child: _imageUrl.isNotEmpty
-                ? Image.network(
-                    _imageUrl,
-                    fit: BoxFit.fill,
-                    loadingBuilder: (_, child, prog) =>
-                        prog == null ? child : _textAvatar(96),
-                    errorBuilder: (_, __, ___) =>
-                        _textAvatar(96),
-                  )
-                : _textAvatar(96),
-          ),
-        ),
-      ),
-      Positioned(
-        right: 4,
-        bottom: 4,
-        child: Container(
-          width: 22,
-          height: 22,
+  Widget _buildLargeAvatar() {
+  return Transform.translate(
+    offset: const Offset(0, -20), // push up
+    child: Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        Container(
+          width: 120,
+          height: 220,
+          padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF22C55E),
-            border: Border.all(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [_kBrandMid, _kBrand],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
               color: _kCardBg,
-              width: 2.5,
+              borderRadius: BorderRadius.all(Radius.circular(21)),
+            ),
+            padding: const EdgeInsets.all(2),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(19),
+              child: _imageUrl.isNotEmpty
+                  ? Image.network(
+                      _imageUrl,
+                      width: 120,
+                      height: 220,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (_, child, prog) =>
+                          prog == null ? child : _textAvatar(100),
+                      errorBuilder: (_, __, ___) =>
+                          _textAvatar(100),
+                    )
+                  : _textAvatar(100),
             ),
           ),
         ),
-      ),
-    ],
+        Positioned(
+          right: 4,
+          bottom: 4,
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF22C55E),
+              border: Border.all(
+                color: _kCardBg,
+                width: 2.5,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
   );
 }
+  
   Widget _textAvatar(double size) {
     return Container(
-      width: size, height: size,
+      width: size, 
+      height: 160,
       color: _kBrandLight,
       child: Center(
         child: Text(
@@ -877,32 +807,6 @@ ${_referredBy.isNotEmpty ? "🔗 REFERRED BY: $_referredBy\n" : ""}
       ),
     );
   }
-
-  
-  Widget _statItem(String value, String label, IconData icon) {
-    return Expanded(
-      child: Column(
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _kBrandLight,
-            ),
-            child: Icon(icon, size: 17, color: _kBrand),
-          ),
-          const SizedBox(height: 6),
-          Text(value,
-              style: GoogleFonts.dmSans(
-                  fontSize: 13, fontWeight: FontWeight.w800, color: _kTextPri)),
-          Text(label,
-              style: GoogleFonts.dmSans(fontSize: 10, color: _kTextMuted)),
-        ],
-      ),
-    );
-  }
-
-  Widget _verticalDivider() => Container(width: 1, height: 44, color: _kBorder);
 
   Widget _buildSection({
     required String label,
