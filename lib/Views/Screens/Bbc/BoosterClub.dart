@@ -124,7 +124,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
     // Parse history
     _historyText = data['history']?.toString() ?? 
                    data['company_history']?.toString() ?? 
-                   'Founded in 2020, Business Boosters Club started with a vision to bridge the gap between businesses and opportunities.';
+                   'Founded in 2018, Business Boosters Club started with a vision to bridge the gap between businesses and opportunities.';
 
     // Parse core values
     final values = data['core_values'] ?? data['values'];
@@ -221,7 +221,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
               bottom: 8, left: 14,
               child: _circle(90, Colors.white.withOpacity(0.04))),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 14, 24, 36),
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -244,16 +244,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
                       
                     ],
                   ),
-                  const SizedBox(height: 2),
                  
-                
-                  Text('OUR STORY',
-                      style: GoogleFonts.dmSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                          color: Colors.white.withOpacity(0.6))),
-                  const SizedBox(height: 5),
                  Row(
   crossAxisAlignment: CrossAxisAlignment.center,
   children: [
@@ -286,34 +277,39 @@ class _AboutUsPageState extends State<AboutUsPage> {
     ),
 
     const SizedBox(width: 16),
-
-    Container(
-      width: 100,
-      height: 100,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.92),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Image.asset(
-          'assets/images/bbclogo.png',
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Icon(
-            Icons.business_center_rounded,
-            color: _kBrand,
-            size: 24,
-          ),
+Transform.translate(
+  offset: const Offset(0, -40), // move entire container up
+  child: Container(
+    width: 130,
+    height: 130,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.white.withOpacity(0.92),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.12),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: Image.asset(
+        'assets/images/bbclogo.png',
+        fit: BoxFit.contain,
+        width: 120,
+        height: 120,
+        errorBuilder: (_, __, ___) => Icon(
+          Icons.business_center_rounded,
+          color: _kBrand,
+          size: 80,
         ),
       ),
     ),
+  ),
+)
+    
   ],
 ),
                 ],
@@ -766,7 +762,7 @@ class _AboutUsPageState extends State<AboutUsPage> {
     },
     {
       'image': 'assets/images/3.png',
-      'name': 'UMESH TULSYAN',
+      'name': 'UMESH \n TULSYAN',
     },
   ];
 

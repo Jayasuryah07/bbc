@@ -28,7 +28,8 @@ class ActivityPage extends StatefulWidget {
 }
 
 class _ActivityPageState extends State<ActivityPage> {
-  Map<String, dynamic> _activityData = {};
+  // Data model for user activity (matches the API response structure)
+  ActivityData? _activityData;
   bool _isLoading = true;
   String? _errorMessage;
   String _userName = '';
@@ -63,6 +64,22 @@ class _ActivityPageState extends State<ActivityPage> {
       }
 
       // First fetch user profile to get basic info
+      await _fetchUserProfile(token);
+
+      // Fetch user activity using fetch-user-activity endpoint
+      await _fetchUserActivityData(token);
+      
+    } catch (e) {
+      debugPrint('Activity error: $e');
+      setState(() {
+        _errorMessage = 'Network error: Please check your connection';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchUserProfile(String token) async {
+    try {
       final profileResponse = await http.post(
         Uri.parse('https://businessboosters.club/public/api/fetch-profile'),
         headers: {
@@ -77,16 +94,23 @@ class _ActivityPageState extends State<ActivityPage> {
         final profileJson = jsonDecode(profileResponse.body);
         if (profileJson['code'] == 200 && profileJson['data'] != null) {
           final data = profileJson['data'];
-          _userName = data['name']?.toString() ?? data['person_name']?.toString() ?? 'User';
-          _userMobile = data['mobile']?.toString() ?? data['person_mobile']?.toString() ?? '';
-          _userEmail = data['email']?.toString() ?? data['person_email']?.toString() ?? '';
-          _userCompany = data['company']?.toString() ?? data['person_company']?.toString() ?? '';
-          _userOccupation = data['occupation']?.toString() ?? data['person_occupation']?.toString() ?? '';
-          _joiningDate = data['created_at']?.toString()?.split('T')[0] ?? data['joining_date']?.toString() ?? 'Not available';
+          setState(() {
+            _userName = data['name']?.toString() ?? data['person_name']?.toString() ?? 'User';
+            _userMobile = data['mobile']?.toString() ?? data['person_mobile']?.toString() ?? '';
+            _userEmail = data['email']?.toString() ?? data['person_email']?.toString() ?? '';
+            _userCompany = data['company']?.toString() ?? data['person_company']?.toString() ?? '';
+            _userOccupation = data['occupation']?.toString() ?? data['person_occupation']?.toString() ?? '';
+            _joiningDate = data['created_at']?.toString()?.split('T')[0] ?? data['joining_date']?.toString() ?? 'Not available';
+          });
         }
       }
+    } catch (e) {
+      debugPrint('Profile fetch error: $e');
+    }
+  }
 
-      // Fetch user activity using fetch-user-activity endpoint
+  Future<void> _fetchUserActivityData(String token) async {
+    try {
       final activityResponse = await http.get(
         Uri.parse('https://businessboosters.club/public/api/fetch-user-activity'),
         headers: {'Authorization': 'Bearer $token'},
@@ -99,92 +123,38 @@ class _ActivityPageState extends State<ActivityPage> {
         final json = jsonDecode(activityResponse.body);
         if (json['code'] == 200 && json['data'] != null) {
           setState(() {
-            _activityData = json['data'];
+            _activityData = ActivityData.fromJson(json['data']);
             _isLoading = false;
           });
         } else if (json['success'] == true && json['data'] != null) {
           setState(() {
-            _activityData = json['data'];
+            _activityData = ActivityData.fromJson(json['data']);
             _isLoading = false;
           });
-        } else {
-          await _fetchAttendanceReport(token);
-        }
-      } else {
-        await _fetchAttendanceReport(token);
-      }
-    } catch (e) {
-      debugPrint('Activity error: $e');
-      setState(() {
-        _errorMessage = 'Network error: Please check your connection';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _fetchAttendanceReport(String token) async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://businessboosters.club/public/api/fetch-user-attendance-report'),
-        headers: {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        if (json['code'] == 200 && json['data'] != null) {
+        } else if (json['data'] != null) {
           setState(() {
-            _activityData = json['data'];
+            _activityData = ActivityData.fromJson(json['data']);
             _isLoading = false;
           });
         } else {
           setState(() {
-            _activityData = _getMockActivityData();
+            _activityData = ActivityData.empty();
             _isLoading = false;
           });
         }
       } else {
         setState(() {
-          _activityData = _getMockActivityData();
+          _activityData = ActivityData.empty();
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Attendance report error: $e');
+      debugPrint('Activity data fetch error: $e');
       setState(() {
-        _activityData = _getMockActivityData();
+        _activityData = ActivityData.empty();
         _isLoading = false;
       });
     }
-  }
-
-  Map<String, dynamic> _getMockActivityData() {
-    return {
-      'onetoone_count': 1,
-      'team_points': 0,
-      'visitor_count': 0,
-      'chief_guest_count': 0,
-      'bonus_point': 0,
-      'newjoining_count': 0,
-      'ref_given': 0,
-      'ref_received': 6000,
-      'attendance_count': 2,
-      'total_meetings': 5,
-    };
-  }
-
-  int _getValue(String key) {
-    return _activityData[key]?.toInt() ?? _activityData[key] ?? 0;
-  }
-
-  String _getStringValue(String key) {
-    return _activityData[key]?.toString() ?? '0';
-  }
-
-  double _getAttendancePercentage() {
-    final attended = _getValue('attendance_count');
-    final total = _getValue('total_meetings') != 0 ? _getValue('total_meetings') : 5;
-    if (total == 0) return 0;
-    return (attended / total) * 100;
   }
 
   @override
@@ -203,12 +173,15 @@ class _ActivityPageState extends State<ActivityPage> {
                       ? _buildErrorView()
                       : SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.only(top: 8, bottom: 20),
                           child: Column(
                             children: [
-                             
+                              const SizedBox(height: 8),
+                              _buildDashboardTitle(),
+                              const SizedBox(height: 16),
                               _buildStatsGrid(),
                               const SizedBox(height: 16),
-                              _buildAttendanceCard(),
+                              _buildGroupWiseAttendanceCard(),
                               const SizedBox(height: 16),
                               _buildReferralCard(),
                               const SizedBox(height: 16),
@@ -239,75 +212,64 @@ class _ActivityPageState extends State<ActivityPage> {
         child: Stack(
           children: [
             Positioned(
-              top: -50, right: -40,
-              child: _circle(180, Colors.white.withOpacity(0.06))),
+              top: -50,
+              right: -40,
+              child: _circle(180, Colors.white.withOpacity(0.06)),
+            ),
             Positioned(
-              bottom: 8, left: 14,
-              child: _circle(90, Colors.white.withOpacity(0.04))),
+              bottom: 8,
+              left: 14,
+              child: _circle(90, Colors.white.withOpacity(0.04)),
+            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 14, 24, 36),
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                    
-                      Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.15),
-                          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
+                      // Back button
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.15),
+                            border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
+                          ),
+                          child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
                         ),
-                        child: Center(
-                          child: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.92),
-                            ),
-                            child: Center(
-                              child: Image.asset(
-                                'assets/images/bbclogo.png',
-                                width: 24,
-                                height: 24,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(Icons.business_center_rounded, color: _kBrand, size: 20),
+                      ),
+                      // Welcome text
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Welcome back,',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 12,
+                                color: Colors.white.withOpacity(0.8),
+                                letterSpacing: 0.5,
                               ),
                             ),
-                          ),
+                            Text(
+                              _userName.isNotEmpty ? _userName : 'Member',
+                              style: GoogleFonts.cormorantGaramond(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Business Boosters Club',
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white)),
-                          const SizedBox(height: 2),
-                          Text('ACTIVITY DASHBOARD',
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1.2,
-                                  color: Colors.white.withOpacity(0.55))),
-                        ],
-                      ),
                     ],
                   ),
-                    
-                    ],
-                  ),
-                
-                 
                 ],
               ),
             ),
@@ -318,147 +280,56 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _circle(double size, Color color) => Container(
-        width: size, height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color));
+        width: size,
+        height: size,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      );
 
-  Widget _buildProfileCard() {
-    return Transform.translate(
-      offset: const Offset(0, -20),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
+  Widget _buildDashboardTitle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 24,
+            decoration: BoxDecoration(
+              color: _kBrand,
+              borderRadius: BorderRadius.circular(2),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [_kPlum, _kBrand],
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600, color: Colors.white),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _userName,
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: _kTextPri,
-                ),
-              ),
-              const SizedBox(height: 4),
-              if (_userOccupation.isNotEmpty)
-                Text(
-                  _userOccupation,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: _kBrand,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              const SizedBox(height: 12),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (_userMobile.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _kBrandLight,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.phone_android_rounded, size: 14, color: _kBrand),
-                          const SizedBox(width: 6),
-                          Text(
-                            _userMobile,
-                            style: GoogleFonts.inter(fontSize: 12, color: _kBrand),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (_userEmail.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _kBrandLight,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.email_outlined, size: 14, color: _kBrand),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              _userEmail.length > 20 ? '${_userEmail.substring(0, 18)}...' : _userEmail,
-                              style: GoogleFonts.inter(fontSize: 12, color: _kBrand),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Joined: $_joiningDate',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: _kTextMuted,
-                ),
-              ),
-            ],
           ),
-        ),
+          const SizedBox(width: 12),
+          Text(
+            'Dashboard Overview',
+            style: GoogleFonts.dmSans(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: _kTextPri,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildStatsGrid() {
-    final oneToOne = _getValue('onetoone_count');
-    final teamPoints = _getValue('team_points');
-    final visitorCount = _getValue('visitor_count');
-    final newJoining = _getValue('newjoining_count');
+    final oneToOne = _activityData?.oneToOneCount ?? 0;
+    final teamPoints = _activityData?.teamPoints ?? 0;
+    final visitorCount = _activityData?.visitorCount ?? 0;
+    final newJoining = _activityData?.newJoiningCount ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.count(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 1.2,
+        childAspectRatio: 1.3,
         children: [
           _statCard('One to One', oneToOne.toString(), Icons.people_alt_rounded, _kInfo),
-          _statCard('Team', teamPoints.toString(), Icons.groups_rounded, _kSuccess),
+          _statCard('Team Points', teamPoints.toString(), Icons.groups_rounded, _kSuccess),
           _statCard('Visitor', visitorCount.toString(), Icons.visibility_rounded, _kWarning),
           _statCard('New Joining', newJoining.toString(), Icons.person_add_rounded, Colors.teal),
         ],
@@ -497,7 +368,7 @@ class _ActivityPageState extends State<ActivityPage> {
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
               color: _kTextPri,
             ),
@@ -508,6 +379,7 @@ class _ActivityPageState extends State<ActivityPage> {
             style: GoogleFonts.inter(
               fontSize: 11,
               color: _kTextMuted,
+              fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
@@ -516,10 +388,316 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  Widget _buildAttendanceCard() {
-    final attended = _getValue('attendance_count');
-    final total = _getValue('total_meetings') != 0 ? _getValue('total_meetings') : 5;
-    final percentage = _getAttendancePercentage();
+  // New method to handle group-wise attendance display
+  Widget _buildGroupWiseAttendanceCard() {
+    final groupWise = _activityData?.groupWise ?? [];
+    
+    if (groupWise.isEmpty) {
+      // Fallback to old single group display if no group-wise data
+      return _buildLegacyAttendanceCard();
+    }
+
+    // Calculate number of groups for responsive layout
+    final groupCount = groupWise.length;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _kBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: _kBrand,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Attendance Overview',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _kTextPri,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            // Responsive layout based on number of groups
+            if (groupCount == 1)
+              _buildSingleGroupAttendance(groupWise[0])
+            else if (groupCount == 2)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildGroupAttendanceTile(groupWise[0])),
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 1,
+                    height: 120,
+                    color: _kBorder,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildGroupAttendanceTile(groupWise[1])),
+                ],
+              )
+            else
+              // For 3 or more groups, use responsive grid
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth > 600) {
+                    // Tablet/Web: Show in a row
+                    return Row(
+                      children: List.generate(
+                        groupCount > 3 ? 3 : groupCount,
+                        (index) => Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: index < (groupCount > 3 ? 3 : groupCount) - 1 ? 16 : 0,
+                            ),
+                            child: _buildGroupAttendanceTile(groupWise[index]),
+                          ),
+                        ),
+                      ),
+                    );
+                  } else {
+                    // Mobile: Show in a scrollable horizontal list or wrap
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: List.generate(
+                          groupCount,
+                          (index) => Container(
+                            width: 200,
+                            margin: EdgeInsets.only(right: index < groupCount - 1 ? 16 : 0),
+                            child: _buildGroupAttendanceTile(groupWise[index]),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Single group display (centered)
+  Widget _buildSingleGroupAttendance(GroupWiseData group) {
+    final attended = group.attendanceCount;
+    final totalMeetings = group.totalMeetings;
+    final percentage = totalMeetings > 0 ? (attended / totalMeetings) * 100 : 0;
+    
+    return Center(
+      child: SizedBox(
+        width: 280,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _kBrandLight,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                group.groupName,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _kBrand,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$attended / $totalMeetings',
+                      style: GoogleFonts.poppins(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: _kBrand,
+                      ),
+                    ),
+                    Text(
+                      'Meetings Attended',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: _kTextMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 90,
+                        height: 90,
+                        child: CircularProgressIndicator(
+                          value: percentage / 100,
+                          strokeWidth: 8,
+                          backgroundColor: _kBrandLight,
+                          valueColor: AlwaysStoppedAnimation<Color>(_kBrand),
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${percentage.toInt()}%',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: _kBrand,
+                            ),
+                          ),
+                          Text(
+                            'Rate',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              color: _kTextMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Individual group attendance tile for multi-group display
+  Widget _buildGroupAttendanceTile(GroupWiseData group) {
+    final attended = group.attendanceCount;
+    final totalMeetings = group.totalMeetings;
+    final percentage = totalMeetings > 0 ? (attended / totalMeetings) * 100 : 0;
+    
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [_kBrand, _kPlum],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            _truncateGroupName(group.groupName),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          '$attended / $totalMeetings',
+          style: GoogleFonts.poppins(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: _kBrand,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Attended',
+          style: GoogleFonts.inter(
+            fontSize: 10,
+            color: _kTextMuted,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: 80,
+          height: 80,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 70,
+                height: 70,
+                child: CircularProgressIndicator(
+                  value: percentage / 100,
+                  strokeWidth: 6,
+                  backgroundColor: _kBrandLight,
+                  valueColor: AlwaysStoppedAnimation<Color>(_kBrand),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${percentage.toInt()}%',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _kBrand,
+                    ),
+                  ),
+                  Text(
+                    'Rate',
+                    style: GoogleFonts.inter(
+                      fontSize: 8,
+                      color: _kTextMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _truncateGroupName(String name) {
+    if (name.length <= 15) return name;
+    return '${name.substring(0, 12)}...';
+  }
+
+  // Legacy fallback for backward compatibility
+  Widget _buildLegacyAttendanceCard() {
+    final attended = _activityData?.attendanceCount ?? 0;
+    final totalMeetings = _activityData?.totalMeeting ?? 0;
+    final percentage = totalMeetings > 0 ? (attended / totalMeetings) * 100 : 0;
     
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -569,7 +747,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$attended / $total',
+                      '$attended / $totalMeetings',
                       style: GoogleFonts.poppins(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
@@ -633,8 +811,8 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildReferralCard() {
-    final refGiven = _getValue('ref_given');
-    final refReceived = _getValue('ref_received');
+    final refGiven = _activityData?.refGiven ?? 0;
+    final refReceived = _activityData?.refReceived ?? 0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -725,8 +903,8 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildAdditionalStats() {
-    final chiefGuest = _getValue('chief_guest_count');
-    final bonusPoint = _getValue('bonus_point');
+    final chiefGuest = _activityData?.chiefGuestCount ?? 0;
+    final bonusPoint = _activityData?.bonusPoint ?? 0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -817,7 +995,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Bonus',
+                    'Bonus Point',
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       color: _kTextMuted,
@@ -839,7 +1017,7 @@ class _ActivityPageState extends State<ActivityPage> {
         children: [
           Icon(Icons.error_outline, size: 64, color: _kTextMuted),
           const SizedBox(height: 16),
-          Text(_errorMessage!, style: GoogleFonts.inter(fontSize: 14, color: _kTextSec, )),
+          Text(_errorMessage!, style: GoogleFonts.inter(fontSize: 14, color: _kTextSec)),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _fetchUserActivity,
@@ -851,6 +1029,125 @@ class _ActivityPageState extends State<ActivityPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Helper function to safely convert dynamic values to int
+int _toInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value) ?? 0;
+  if (value is double) return value.toInt();
+  return 0;
+}
+
+// Group-wise data model
+class GroupWiseData {
+  final String groupName;
+  final int totalMeetings;
+  final int attendanceCount;
+
+  GroupWiseData({
+    required this.groupName,
+    required this.totalMeetings,
+    required this.attendanceCount,
+  });
+
+  factory GroupWiseData.fromJson(Map<String, dynamic> json) {
+    return GroupWiseData(
+      groupName: json['group_name']?.toString() ?? '',
+      totalMeetings: _toInt(json['total_meetings']),
+      attendanceCount: _toInt(json['attendance_count']),
+    );
+  }
+}
+
+// Data model class for user activity API response
+class ActivityData {
+  final int id;
+  final String name;
+  final String mobile;
+  final String userGroup;
+  final String category;
+  final int attendanceCount;
+  final int totalMeeting;
+  final int refReceived;
+  final int refGiven;
+  final int oneToOneCount;
+  final int teamPoints;
+  final int visitorCount;
+  final int chiefGuestCount;
+  final int newJoiningCount;
+  final int bonusPoint;
+  final List<GroupWiseData> groupWise; // New field for group-wise data
+
+  ActivityData({
+    required this.id,
+    required this.name,
+    required this.mobile,
+    required this.userGroup,
+    required this.category,
+    required this.attendanceCount,
+    required this.totalMeeting,
+    required this.refReceived,
+    required this.refGiven,
+    required this.oneToOneCount,
+    required this.teamPoints,
+    required this.visitorCount,
+    required this.chiefGuestCount,
+    required this.newJoiningCount,
+    required this.bonusPoint,
+    required this.groupWise,
+  });
+
+  factory ActivityData.fromJson(Map<String, dynamic> json) {
+    // Parse group_wise array
+    List<GroupWiseData> groupWiseList = [];
+    if (json['group_wise'] != null && json['group_wise'] is List) {
+      groupWiseList = (json['group_wise'] as List)
+          .map((group) => GroupWiseData.fromJson(group))
+          .toList();
+    }
+    
+    return ActivityData(
+      id: _toInt(json['id']),
+      name: json['name']?.toString() ?? '',
+      mobile: json['mobile']?.toString() ?? '',
+      userGroup: json['user_group']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      attendanceCount: _toInt(json['attendance_count']),
+      totalMeeting: _toInt(json['total_meeting']),
+      refReceived: _toInt(json['ref_received']),
+      refGiven: _toInt(json['ref_given']),
+      oneToOneCount: _toInt(json['onetoone_count']),
+      teamPoints: _toInt(json['team_points']),
+      visitorCount: _toInt(json['visitor_count']),
+      chiefGuestCount: _toInt(json['chief_guest_count']),
+      newJoiningCount: _toInt(json['newjoining_count']),
+      bonusPoint: _toInt(json['bonus_point']),
+      groupWise: groupWiseList,
+    );
+  }
+
+  factory ActivityData.empty() {
+    return ActivityData(
+      id: 0,
+      name: '',
+      mobile: '',
+      userGroup: '',
+      category: '',
+      attendanceCount: 0,
+      totalMeeting: 0,
+      refReceived: 0,
+      refGiven: 0,
+      oneToOneCount: 0,
+      teamPoints: 0,
+      visitorCount: 0,
+      chiefGuestCount: 0,
+      newJoiningCount: 0,
+      bonusPoint: 0,
+      groupWise: [],
     );
   }
 }

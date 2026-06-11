@@ -28,15 +28,21 @@ class ProfilePageBBcc extends StatefulWidget {
   State<ProfilePageBBcc> createState() => _ProfilePageBBccState();
 }
 
-class _ProfilePageBBccState extends State<ProfilePageBBcc> {
+class _ProfilePageBBccState extends State<ProfilePageBBcc> with SingleTickerProviderStateMixin {
   Map<String, dynamic> _userData = {};
   bool _isLoading = true;
   bool _isEditing = false;
   String? _errorMessage;
   
+  // Animation controller for the animated button
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+  late Animation<double> _textFadeAnimation;
+  
   // Membership status
   bool _isApprovedMember = false;
-  String _membershipStatus = 'pending'; // pending, approved, rejected
+  String _membershipStatus = 'pending';
   
   // Editing controllers
   late TextEditingController _nameController;
@@ -48,16 +54,36 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
   late TextEditingController _categoryController;
   late TextEditingController _productServicesController;
   late TextEditingController _addressController;
-
-  // Date picker controllers
   late TextEditingController _dobDateController;
   late TextEditingController _anniversaryDateController;
+
+  // Track original values for cancel operation
+  Map<String, String> _originalValues = {};
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
     _fetchUserData();
+    
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.08).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    
+    _textFadeAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    
+    _animationController.repeat(reverse: true);
   }
 
   void _initializeControllers() {
@@ -74,30 +100,40 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
     _anniversaryDateController = TextEditingController();
   }
 
-  // Helper function to format date to YYYY-MM-DD
-  String _formatDateForAPI(String dateString) {
+  String _formatDateToAPI(String dateString) {
     if (dateString.isEmpty) return '';
     
     if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dateString)) {
       return dateString;
     }
     
+    if (dateString.contains('/')) {
+      final parts = dateString.split('/');
+      if (parts.length == 3) {
+        final day = parts[0].padLeft(2, '0');
+        final month = parts[1].padLeft(2, '0');
+        final year = parts[2].length == 4 ? parts[2] : '20${parts[2]}';
+        return '$year-$month-$day';
+      }
+    }
+    
     try {
-      if (dateString.contains('/')) {
+      DateTime? parsedDate;
+      
+      if (dateString.contains('-')) {
+        parsedDate = DateTime.tryParse(dateString);
+      }
+      
+      if (parsedDate == null && dateString.contains('/')) {
         final parts = dateString.split('/');
         if (parts.length == 3) {
           final year = parts[2].length == 4 ? parts[2] : '20${parts[2]}';
-          final month = parts[0].padLeft(2, '0');
-          final day = parts[1].padLeft(2, '0');
-          return '$year-$month-$day';
+          parsedDate = DateTime.tryParse('$year-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}');
         }
       }
       
-      if (dateString.contains('-')) {
-        final parts = dateString.split('-');
-        if (parts.length == 3 && parts[2].length == 4) {
-          return '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}';
-        }
+      if (parsedDate != null) {
+        return "${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.day.toString().padLeft(2, '0')}";
       }
     } catch (e) {
       debugPrint('Date parsing error: $e');
@@ -106,22 +142,80 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
     return dateString;
   }
 
-  // Helper function to format date for display
   String _formatDateForDisplay(String? dateString) {
     if (dateString == null || dateString.isEmpty) return '';
     
+    if (RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(dateString)) {
+      return dateString;
+    }
+    
     if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dateString)) {
       final parts = dateString.split('-');
-      return '${parts[2]}/${parts[1]}/${parts[0]}';
+      if (parts.length == 3) {
+        return '${parts[2]}/${parts[1]}/${parts[0]}';
+      }
+    }
+    
+    try {
+      DateTime? parsedDate;
+      
+      if (dateString.contains('-')) {
+        parsedDate = DateTime.tryParse(dateString);
+      }
+      
+      if (parsedDate == null && dateString.contains('/')) {
+        final parts = dateString.split('/');
+        if (parts.length == 3) {
+          final year = parts[2].length == 4 ? parts[2] : '20${parts[2]}';
+          parsedDate = DateTime.tryParse('$year-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}');
+        }
+      }
+      
+      if (parsedDate != null) {
+        return "${parsedDate.day.toString().padLeft(2, '0')}/${parsedDate.month.toString().padLeft(2, '0')}/${parsedDate.year}";
+      }
+    } catch (e) {
+      debugPrint('Date display parsing error: $e');
     }
     
     return dateString;
   }
 
-  Future<void> _selectDate(TextEditingController controller, bool isDOB) async {
+  Future<void> _selectDate(TextEditingController displayController, TextEditingController storageController) async {
+    DateTime initialDate = DateTime.now();
+    String storageValue = storageController.text.trim();
+    
+    if (storageValue.isNotEmpty) {
+      try {
+        if (storageValue.contains('-')) {
+          final parts = storageValue.split('-');
+          if (parts.length == 3) {
+            initialDate = DateTime(
+              int.parse(parts[0]),
+              int.parse(parts[1]),
+              int.parse(parts[2]),
+            );
+          }
+        } else if (storageValue.contains('/')) {
+          final parts = storageValue.split('/');
+          if (parts.length == 3) {
+            final year = parts[2].length == 4 ? parts[2] : '20${parts[2]}';
+            initialDate = DateTime(
+              int.parse(year),
+              int.parse(parts[1]),
+              int.parse(parts[0]),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error parsing initial date: $e');
+        initialDate = DateTime.now();
+      }
+    }
+    
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: initialDate,
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -139,14 +233,14 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
     );
     
     if (picked != null) {
-      final formattedDate = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-      controller.text = _formatDateForDisplay(formattedDate);
+      final storageFormat = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      final displayFormat = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
       
-      if (isDOB) {
-        _dobController.text = formattedDate;
-      } else {
-        _anniversaryController.text = formattedDate;
-      }
+      storageController.text = storageFormat;
+      displayController.text = displayFormat;
+      
+      debugPrint('Date selected - Storage: $storageFormat, Display: $displayFormat');
+      setState(() {});
     }
   }
 
@@ -167,6 +261,7 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
           _userData = userData;
           _checkMembershipStatus(userData);
           _updateControllers(userData);
+          _saveOriginalValues();
           _isLoading = false;
         });
       }
@@ -185,16 +280,44 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
   }
 
   void _checkMembershipStatus(Map<String, dynamic> userData) {
-    // Check if user is an approved member
     final hasCompany = userData['company'] != null && userData['company'].toString().isNotEmpty;
     final hasOccupation = userData['occupation'] != null && userData['occupation'].toString().isNotEmpty;
     final hasProducts = userData['product_services'] != null && userData['product_services'].toString().isNotEmpty;
     final userType = userData['user_type']?.toString() ?? '';
     final status = userData['membership_status']?.toString() ?? '';
     
-    // Approved member has company, occupation, and products/services OR user_type is 2
     _isApprovedMember = (hasCompany && hasOccupation && hasProducts) || userType == '2' || status == 'approved';
     _membershipStatus = status == 'approved' ? 'approved' : (hasCompany || hasOccupation ? 'approved' : 'pending');
+  }
+
+  void _saveOriginalValues() {
+    _originalValues = {
+      'name': _nameController.text,
+      'firmName': _firmNameController.text,
+      'mobile': _mobileController.text,
+      'email': _emailController.text,
+      'dob': _dobController.text,
+      'dobDisplay': _dobDateController.text,
+      'anniversary': _anniversaryController.text,
+      'anniversaryDisplay': _anniversaryDateController.text,
+      'category': _categoryController.text,
+      'productServices': _productServicesController.text,
+      'address': _addressController.text,
+    };
+  }
+
+  void _restoreOriginalValues() {
+    _nameController.text = _originalValues['name'] ?? '';
+    _firmNameController.text = _originalValues['firmName'] ?? '';
+    _mobileController.text = _originalValues['mobile'] ?? '';
+    _emailController.text = _originalValues['email'] ?? '';
+    _dobController.text = _originalValues['dob'] ?? '';
+    _dobDateController.text = _originalValues['dobDisplay'] ?? '';
+    _anniversaryController.text = _originalValues['anniversary'] ?? '';
+    _anniversaryDateController.text = _originalValues['anniversaryDisplay'] ?? '';
+    _categoryController.text = _originalValues['category'] ?? '';
+    _productServicesController.text = _originalValues['productServices'] ?? '';
+    _addressController.text = _originalValues['address'] ?? '';
   }
 
   Future<void> _fetchFreshUserData(String token) async {
@@ -215,40 +338,50 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
             _userData = data;
             _checkMembershipStatus(data);
             _updateControllers(data);
+            _saveOriginalValues();
+            _isLoading = false;
           });
           await _saveUserDataToPrefs(data);
         }
       }
     } catch (e) {
       debugPrint('Error fetching fresh user data: $e');
+      setState(() => _isLoading = false);
     }
   }
 
+  // --- UPDATED METHOD HERE ---
   void _updateControllers(Map<String, dynamic> userData) {
+    // Check for 'dob' variants
     final rawDob = userData['person_dob']?.toString() ?? userData['dob']?.toString() ?? '';
-    final rawDoa = userData['person_doa']?.toString() ?? userData['anniversary']?.toString() ?? '';
     
-    _dobController.text = rawDob;
-    _anniversaryController.text = rawDoa;
+    // Check for 'doa' variants (Added 'doa' key to match your JSON)
+    final rawDoa = userData['person_doa']?.toString() ?? userData['doa']?.toString() ?? userData['anniversary']?.toString() ?? '';
     
-    _dobDateController.text = _formatDateForDisplay(rawDob);
-    _anniversaryDateController.text = _formatDateForDisplay(rawDoa);
+    final formattedDobAPI = _formatDateToAPI(rawDob);
+    final formattedDoaAPI = _formatDateToAPI(rawDoa);
     
-    _nameController.text = userData['person_name']?.toString() ?? 
-                           userData['name']?.toString() ?? '';
-    _firmNameController.text = userData['person_company']?.toString() ?? 
-                               userData['company']?.toString() ?? '';
-    _mobileController.text = userData['person_mobile']?.toString() ?? 
-                             userData['mobile']?.toString() ?? '';
-    _emailController.text = userData['person_email']?.toString() ?? 
-                            userData['email']?.toString() ?? '';
-    _categoryController.text = userData['person_occupation']?.toString() ?? 
-                               userData['category']?.toString() ?? '';
-    _productServicesController.text = userData['person_service']?.toString() ?? 
-                                      userData['product']?.toString() ?? 
-                                      userData['product_services']?.toString() ?? '';
-    _addressController.text = userData['person_address']?.toString() ?? 
-                              userData['address']?.toString() ?? '';
+    _dobController.text = formattedDobAPI;
+    _anniversaryController.text = formattedDoaAPI;
+    
+    _dobDateController.text = _formatDateForDisplay(rawDob.isNotEmpty ? rawDob : formattedDobAPI);
+    _anniversaryDateController.text = _formatDateForDisplay(rawDoa.isNotEmpty ? rawDoa : formattedDoaAPI);
+    
+    _nameController.text = userData['person_name']?.toString() ?? userData['name']?.toString() ?? '';
+    _firmNameController.text = userData['person_company']?.toString() ?? userData['company']?.toString() ?? '';
+    _mobileController.text = userData['person_mobile']?.toString() ?? userData['mobile']?.toString() ?? '';
+    _emailController.text = userData['person_email']?.toString() ?? userData['email']?.toString() ?? '';
+    
+    // Check for occupation variants (Added 'occupation' key to match your JSON)
+    _categoryController.text = userData['person_occupation']?.toString() ?? userData['occupation']?.toString() ?? userData['category']?.toString() ?? '';
+    
+    // Check for product variants (Added 'product' key to match your JSON)
+    _productServicesController.text = userData['person_service']?.toString() ?? userData['product']?.toString() ?? userData['product_services']?.toString() ?? '';
+    
+    _addressController.text = userData['person_address']?.toString() ?? userData['address']?.toString() ?? '';
+    
+    debugPrint('Updated controllers - DOB storage: ${_dobController.text}, DOB display: ${_dobDateController.text}');
+    debugPrint('Updated controllers - Anniversary storage: ${_anniversaryController.text}, Anniversary display: ${_anniversaryDateController.text}');
   }
 
   Future<void> _saveUserDataToPrefs(Map<String, dynamic> userData) async {
@@ -256,6 +389,7 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
     await prefs.setString('bbc_user_data', jsonEncode(userData));
   }
 
+  // --- UPDATED METHOD HERE ---
   Future<void> _updateUserProfile() async {
     setState(() => _isLoading = true);
 
@@ -269,8 +403,10 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
         return;
       }
 
-      final formattedDob = _formatDateForAPI(_dobController.text);
-      final formattedDoa = _formatDateForAPI(_anniversaryController.text);
+      final formattedDob = _dobController.text.trim();
+      final formattedDoa = _anniversaryController.text.trim();
+
+      debugPrint('Submitting - DOB: $formattedDob, Anniversary: $formattedDoa');
 
       final request = http.MultipartRequest(
         'POST',
@@ -297,6 +433,7 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
       final json = jsonDecode(responseBody);
 
       if (streamedResponse.statusCode == 200 && json['code'] == 200) {
+        // Ensure ALL possible API keys are updated in the local cache
         final updatedUserData = {
           ..._userData,
           'person_name': _nameController.text.trim(),
@@ -310,10 +447,13 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
           'person_dob': formattedDob,
           'dob': formattedDob,
           'person_doa': formattedDoa,
+          'doa': formattedDoa, // Added
           'anniversary': formattedDoa,
           'person_occupation': _categoryController.text.trim(),
+          'occupation': _categoryController.text.trim(), // Added
           'category': _categoryController.text.trim(),
           'person_service': _productServicesController.text.trim(),
+          'product': _productServicesController.text.trim(), // Added
           'product_services': _productServicesController.text.trim(),
           'person_address': _addressController.text.trim(),
           'address': _addressController.text.trim(),
@@ -322,6 +462,8 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
         setState(() {
           _userData = updatedUserData;
           _checkMembershipStatus(updatedUserData);
+          _updateControllers(updatedUserData);
+          _saveOriginalValues();
           _isEditing = false;
           _isLoading = false;
         });
@@ -336,84 +478,6 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
       _showSnackBar('Network error: $e');
       setState(() => _isLoading = false);
     }
-  }
-
-  Future<void> _fetchAttendanceReport() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('bbc_token');
-
-      if (token == null || token.isEmpty) {
-        _showSnackBar('Please login again');
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('https://businessboosters.club/public/api/fetch-user-attendance-report'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        if (json['code'] == 200) {
-          _showAttendanceDialog(json['data'] ?? json);
-        } else {
-          _showSnackBar(json['msg'] ?? 'No attendance data available');
-        }
-      } else {
-        _showSnackBar('Attendance report API returned status: ${response.statusCode}');
-      }
-    } catch (e) {
-      _showSnackBar('Could not fetch attendance: $e');
-    }
-  }
-
-  void _showAttendanceDialog(dynamic reportData) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Attendance Report', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, color: _kBrand)),
-        content: Container(
-          width: double.maxFinite,
-          constraints: const BoxConstraints(maxHeight: 400),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (reportData is Map)
-                  ...reportData.entries.map((entry) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 120,
-                          child: Text(
-                            '${entry.key}:',
-                            style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 12),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(entry.value.toString(), style: GoogleFonts.dmSans(fontSize: 12)),
-                        ),
-                      ],
-                    ),
-                  )).toList()
-                else
-                  Text(jsonEncode(reportData), style: GoogleFonts.dmSans()),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: GoogleFonts.dmSans(color: _kBrand, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showSnackBar(String message) {
@@ -440,9 +504,7 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
       (route) => false,
     );
   }
@@ -505,7 +567,23 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
     );
   }
 
-  Widget _buildDatePickerRow(String label, TextEditingController controller, IconData icon, bool isDOB) {
+  void _navigateToActivity() {
+    HapticFeedback.lightImpact();
+    _animationController.stop();
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ActivityPage()),
+    ).then((_) {
+      if (mounted) {
+        _animationController.repeat(reverse: true);
+        // Refresh data when coming back to ensure latest data is shown
+        _fetchUserData();
+      }
+    });
+  }
+
+  Widget _buildDatePickerRow(String label, TextEditingController displayController, TextEditingController storageController, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -536,7 +614,7 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
                 const SizedBox(height: 4),
                 _isEditing && _isApprovedMember
                     ? GestureDetector(
-                        onTap: () => _selectDate(controller, isDOB),
+                        onTap: () => _selectDate(displayController, storageController),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(
@@ -548,10 +626,10 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                controller.text.isEmpty ? 'Select Date' : controller.text,
+                                displayController.text.isEmpty ? 'Select Date' : displayController.text,
                                 style: GoogleFonts.dmSans(
                                   fontSize: 14,
-                                  color: controller.text.isEmpty ? _kTextMuted : _kTextPri,
+                                  color: displayController.text.isEmpty ? _kTextMuted : _kTextPri,
                                 ),
                               ),
                               Icon(Icons.calendar_today, size: 18, color: _kBrand),
@@ -560,10 +638,10 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
                         ),
                       )
                     : Text(
-                        controller.text.isEmpty ? 'Not provided' : controller.text,
+                        displayController.text.isEmpty ? 'Not provided' : displayController.text,
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
-                          color: controller.text.isEmpty ? _kTextMuted : _kTextPri,
+                          color: displayController.text.isEmpty ? _kTextMuted : _kTextPri,
                         ),
                       ),
               ],
@@ -575,7 +653,6 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
   }
 
   Widget _buildEditableRow(String label, TextEditingController controller, IconData icon, {bool enabled = true, int maxLines = 1}) {
-    // For non-approved members, only name, email, mobile are editable/visible
     if (!_isApprovedMember && label != 'Full Name' && label != 'Email' && label != 'Mobile Number') {
       return const SizedBox.shrink();
     }
@@ -642,6 +719,7 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
 
   @override
   void dispose() {
+    _animationController.dispose();
     _nameController.dispose();
     _firmNameController.dispose();
     _mobileController.dispose();
@@ -678,7 +756,7 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_kPlum, _kBrand, Color(0xFFC4156E)],
+          colors: [_kPlum, _kBrand, Color.fromRGBO(196, 21, 110, 1)],
           stops: [0.0, 0.6, 1.0],
         ),
       ),
@@ -698,120 +776,96 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.15),
-                            border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                          ),
-                          child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 16),
-                        ),
-                      ),
-                      if (!_isEditing && _isApprovedMember)
-                        GestureDetector(
-                          onTap: () => setState(() => _isEditing = true),
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.15),
-                              border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                            ),
-                            child: const Icon(Icons.edit, color: Colors.white, size: 16),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.15),
-                          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.92),
-                            ),
-                            child: Center(
-                              child: Text(
-                                _userData['name']?.isNotEmpty == true
-                                    ? _userData['name'][0].toUpperCase()
-                                    : _userData['person_name']?.isNotEmpty == true
-                                        ? _userData['person_name'][0].toUpperCase()
-                                        : 'U',
-                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kBrand),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Business Boosters Club',
-                                style: GoogleFonts.dmSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white)),
-                            const SizedBox(height: 2),
-                            Text('PREMIUM NETWORK',
-                                style: GoogleFonts.dmSans(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 1.2,
-                                    color: Colors.white.withOpacity(0.55))),
-                          ],
+                        child: Text(
+                          _userData['name']?.toString() ??
+                              _userData['person_name']?.toString() ??
+                              'User',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.cormorantGaramond(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
                         ),
                       ),
+                      if (_isApprovedMember && !_isEditing)
+                        AnimatedBuilder(
+                          animation: _animationController,
+                          builder: (context, child) {
+                            return GestureDetector(
+                              onTap: _navigateToActivity,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.4),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Transform.scale(
+                                      scale: _scaleAnimation.value,
+                                      child: Container(
+                                        width: 28,
+                                        height: 28,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Color.fromRGBO(196, 21, 110, 1),
+                                        ),
+                                        child: const Icon(
+                                          Icons.bolt_rounded,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'CLICK HERE',
+                                          style: GoogleFonts.dmSans(
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.8,
+                                            color: const Color.fromRGBO(196, 21, 110, 1),
+                                          ),
+                                        ),
+                                        FadeTransition(
+                                          opacity: _textFadeAnimation,
+                                          child: Text(
+                                            'My Activity',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color.fromRGBO(196, 21, 110, 1),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  Text('PROFILE',
-                      style: GoogleFonts.dmSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                          color: Colors.white.withOpacity(0.6))),
-                  const SizedBox(height: 5),
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: _userData['name']?.toString() ?? 
-                                 _userData['person_name']?.toString() ?? 
-                                 'User',
-                          style: GoogleFonts.cormorantGaramond(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              height: 1.1),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                 
-                     
-                
-                 
                 ],
               ),
             ),
@@ -841,7 +895,72 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionLabel(_isApprovedMember ? 'Personal Information' : 'Basic Information'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isApprovedMember ? 'Personal Information' : 'Basic Information',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: _kTextPri,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Manage your profile details',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 12,
+                        color: _kTextMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                if (!_isEditing && _isApprovedMember)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(30),
+                    onTap: () => setState(() => _isEditing = true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [_kBrand, _kPlum],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _kBrand.withOpacity(0.25),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Edit',
+                            style: GoogleFonts.dmSans(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 16),
             _buildEditableRow('Full Name', _nameController, Icons.person_outline_rounded),
             const SizedBox(height: 12),
@@ -854,9 +973,9 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
             _buildEditableRow('Email', _emailController, Icons.mail_outline_rounded),
             if (_isApprovedMember) ...[
               const SizedBox(height: 12),
-              _buildDatePickerRow('Date of Birth', _dobDateController, Icons.cake_outlined, true),
+              _buildDatePickerRow('Date of Birth', _dobDateController, _dobController, Icons.cake_outlined),
               const SizedBox(height: 12),
-              _buildDatePickerRow('Anniversary', _anniversaryDateController, Icons.favorite_border, false),
+              _buildDatePickerRow('Anniversary', _anniversaryDateController, _anniversaryController, Icons.favorite_border),
               const SizedBox(height: 12),
               _buildEditableRow('Category', _categoryController, Icons.category_outlined),
               const SizedBox(height: 12),
@@ -886,40 +1005,26 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
     );
   }
 
-  Widget _sectionLabel(String text) => Text(
-        text.toUpperCase(),
-        style: GoogleFonts.dmSans(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.0,
-            color: _kTextMuted),
-      );
-
   Widget _buildActionButtons() {
     if (!_isEditing) {
       return Column(
         children: [
           if (_isApprovedMember)
-           SizedBox(
-  width: double.infinity,
-  height: 54,
-  child: OutlinedButton(
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ActivityPage()),
-      );
-    },
-    style: OutlinedButton.styleFrom(
-      side: BorderSide(color: _kBrand, width: 1.5),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    ),
-    child: Text(
-      'My Activity',
-      style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600, color: _kBrand),
-    ),
-  ),
-),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: OutlinedButton(
+                onPressed: _navigateToActivity,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: _kBrand, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: Text(
+                  'My Activity',
+                  style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600, color: _kBrand),
+                ),
+              ),
+            ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -938,25 +1043,22 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
             ),
           ),
           const SizedBox(height: 12),
-        InkWell(
-  borderRadius: BorderRadius.circular(8),
-  onTap: _showDeleteAccountDialog,
-  child: Padding(
-    padding: const EdgeInsets.symmetric(
-      vertical: 8,
-      horizontal: 12,
-    ),
-    child: Text(
-      'Delete Account',
-      textAlign: TextAlign.center,
-      style: GoogleFonts.dmSans(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: Colors.red,
-      ),
-    ),
-  ),
-),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: _showDeleteAccountDialog,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              child: Text(
+                'Delete Account',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.red,
+                ),
+              ),
+            ),
+          ),
         ],
       );
     }
@@ -970,11 +1072,11 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
               onPressed: () {
                 setState(() {
                   _isEditing = false;
-                  _updateControllers(_userData);
+                  _restoreOriginalValues();
                 });
               },
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: _kTextSec, width: 1.5),
+                side: const BorderSide(color: _kTextSec, width: 1.5),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
               child: Text(
@@ -991,7 +1093,7 @@ class _ProfilePageBBccState extends State<ProfilePageBBcc> {
             height: 54,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [_kBrand, _kPlum],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
