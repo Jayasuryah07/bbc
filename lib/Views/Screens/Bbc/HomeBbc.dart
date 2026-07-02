@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:new_version_plus/new_version_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -58,7 +59,8 @@ class _HomePageBbcState extends State<HomePageBbc> {
   String _searchQuery = '';
   String? _userId;
   String? _userName;
-
+  bool _showUpdateBar = false;
+ 
   // Lead creation dialog controllers
   final TextEditingController _leadAmountController = TextEditingController();
   String? _selectedMemberId;
@@ -81,18 +83,46 @@ class _HomePageBbcState extends State<HomePageBbc> {
   int _currentPage = 0;
   Timer? _autoSlideTimer;
 
+
+Future<void> _checkForUpdate() async {
+  final newVersion = NewVersionPlus(
+    androidId: "com.bbc.agsolutions",
+  );
+
+  final status = await newVersion.getVersionStatus();
+
+  if (status == null) return;
+
+  if (status.canUpdate && mounted) {
+    setState(() {
+      _showUpdateBar = true;
+    });
+  }
+}
+
   @override
   void initState() {
     super.initState();
+
+    // ✅ Initialize PageController here
     _pageController = PageController();
+    
     _getUserIdAndFetchMembers();
     _fetchSliders();
+
+
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _checkForUpdate();
+  });
+
     _scrollController.addListener(() {
-      setState(() {
-        _scrollOffset = _scrollController.offset;
-      });
+      if (mounted) {
+        setState(() {
+          _scrollOffset = _scrollController.offset;
+        });
+      }
     });
-    _startAutoSlide();
   }
 
   @override
@@ -100,13 +130,15 @@ class _HomePageBbcState extends State<HomePageBbc> {
     _searchFocusNode.dispose();
     _leadAmountController.dispose();
     _scrollController.dispose();
-    _pageController.dispose();
+    _pageController.dispose(); // ✅ Dispose the page controller
     _stopAutoSlide();
+    _searchController.dispose();
     super.dispose();
   }
 
   void _startAutoSlide() {
     _stopAutoSlide();
+    if (_sliderItems.isEmpty) return;
     _autoSlideTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_sliderItems.isNotEmpty && mounted && _pageController.hasClients) {
         final nextPage = (_currentPage + 1) % _sliderItems.length;
@@ -141,54 +173,55 @@ class _HomePageBbcState extends State<HomePageBbc> {
 
   // New method to clear all cache and refresh
   Future<void> _clearCacheAndRefresh() async {
-  setState(() {
-    _isRefreshing = true;
-  });
-
-  try {
-    // Clear local memory cache
-    _memberDetailsCache.clear();
-
-    // Clear Flutter image cache
-    PaintingBinding.instance.imageCache.clear();
-    PaintingBinding.instance.imageCache.clearLiveImages();
-
-    // Clear CachedNetworkImage cache
-    await DefaultCacheManager().emptyCache();
-
-    // Clear temporary files
-    final tempDir = await getTemporaryDirectory();
-    if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
-    }
-
-    _showSnackBar('Cache cleared successfully');
-
-    // Reload data
-    await _fetchMembers();
-    await _fetchSliders();
-
     setState(() {
-      _searchQuery = '';
+      _isRefreshing = true;
     });
 
-    _searchController.clear();
+    try {
+      // Clear local memory cache
+      _memberDetailsCache.clear();
 
-    _stopAutoSlide();
-    _startAutoSlide();
+      // Clear Flutter image cache
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
 
-    _showSnackBar('Fresh data loaded');
-  } catch (e) {
-    debugPrint('Cache clear error: $e');
-    _showSnackBar('Error: $e');
-  } finally {
-    if (mounted) {
+      // Clear CachedNetworkImage cache
+      await DefaultCacheManager().emptyCache();
+
+      // Clear temporary files
+      final tempDir = await getTemporaryDirectory();
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+
+      _showSnackBar('Cache cleared successfully');
+
+      // Reload data
+      await _fetchMembers();
+      await _fetchSliders();
+
       setState(() {
-        _isRefreshing = false;
+        _searchQuery = '';
       });
+
+      _searchController.clear();
+
+      _stopAutoSlide();
+      _startAutoSlide();
+
+      _showSnackBar('Fresh data loaded');
+    } catch (e) {
+      debugPrint('Cache clear error: $e');
+      _showSnackBar('Error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
     }
   }
-}
+
   bool _isBirthdayToday(String? dob) {
     if (dob == null || dob.isEmpty) return false;
     try {
