@@ -101,7 +101,8 @@ flutter:
     - assets/images/ag.svg
     - assets/images/ag1.png
 
-
+#example of adding assets from package dependencies:
+  # assets:
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
